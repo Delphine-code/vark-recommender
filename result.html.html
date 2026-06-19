@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <title>VARK 推荐结果</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #f0f7f4 0%, #e3eee8 50%, #d5e8e0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 40px;
+            box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.12), 0 8px 24px -8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255,255,255,0.6);
+            padding: 40px 36px;
+            max-width: 920px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .style-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(30, 111, 92, 0.08);
+            padding: 6px 16px 6px 10px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #1a6b58;
+        }
+
+        .app-card {
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            transition: all 0.3s;
+            backdrop-filter: blur(4px);
+        }
+
+        .app-card:hover { transform: translateX(4px); }
+
+        .app-card.primary {
+            background: rgba(30, 111, 92, 0.08);
+            border-left: 4px solid #1a6b58;
+        }
+
+        .app-card .icon { font-size: 2rem; flex-shrink: 0; }
+        .app-card .name { font-weight: 600; font-size: 1.05rem; color: #0f2b22; }
+        .app-card .reason { font-size: 0.85rem; color: #4a6a5a; }
+
+        .plan-table { width: 100%; border-collapse: collapse; }
+        .plan-table tr { transition: background 0.2s; }
+        .plan-table tr:hover { background: rgba(30, 111, 92, 0.03); }
+        .plan-table td { padding: 8px 0; border-bottom: 1px solid rgba(200, 215, 208, 0.3); }
+
+        .btn-outline {
+            background: transparent;
+            color: #1a6b58;
+            border: 1.5px solid rgba(30, 111, 92, 0.2);
+            padding: 8px 20px;
+            border-radius: 60px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .btn-outline:hover { background: rgba(30, 111, 92, 0.06); border-color: #1a6b58; }
+
+        @media (max-width: 768px) {
+            .glass-card { padding: 28px 18px; border-radius: 28px; }
+            .grid-cols { grid-template-columns: 1fr !important; }
+            .app-card .icon { font-size: 1.6rem; }
+            .app-card .name { font-size: 0.95rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-card">
+        <!-- 头部 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: #0f2b22;">📋 你的专属方案</h2>
+            <a href="quiz.html" class="btn-outline" style="text-decoration: none;">🔄 重新测评</a>
+        </div>
+
+        <!-- 结果内容 -->
+        <div id="resultContent">
+            <div style="text-align: center; padding: 40px 0; color: #4a6a5a;">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        const data = JSON.parse(localStorage.getItem('varkResult'));
+        const styleNames = { V: "视觉型", A: "听觉型", R: "读写型", K: "动觉型" };
+        const styleIcons = { V: "👁️", A: "👂", R: "📖", K: "✍️" };
+        const styleColors = { V: "#3b82f6", A: "#8b5cf6", R: "#f59e0b", K: "#ef4444" };
+
+        if (!data) {
+            document.getElementById('resultContent').innerHTML = `
+                <div style="text-align:center;padding:40px 0;">
+                    <p style="color:#4a6a5a;margin-bottom:16px;">未找到测评数据，请先完成测评。</p>
+                    <a href="quiz.html" style="color:#1a6b58;font-weight:600;">去测评 →</a>
+                </div>
+            `;
+        } else {
+            const { style, rec, plan } = data;
+            const primaryName = styleNames[style.primary] || style.primary;
+            const primaryIcon = styleIcons[style.primary] || "📘";
+            const secondaryName = styleNames[style.secondary] || style.secondary;
+            const secondaryIcon = styleIcons[style.secondary] || "📘";
+
+            let altHtml = rec.alternatives.map(a =>
+                `<div class="app-card"><span class="icon">📱</span><div><div class="name">${a}</div></div></div>`
+            ).join('');
+
+            document.getElementById('resultContent').innerHTML = `
+                <!-- 风格标识 -->
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:16px 20px;background:rgba(30,111,92,0.05);border-radius:20px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:2rem;">${primaryIcon}</span>
+                        <span style="font-weight:700;font-size:1.2rem;color:#0f2b22;">${primaryName}</span>
+                    </div>
+                    <span style="color:#8aa69a;">+</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:1.4rem;">${secondaryIcon}</span>
+                        <span style="color:#4a6a5a;font-weight:500;">${secondaryName}</span>
+                    </div>
+                    <span style="margin-left:auto;font-size:0.75rem;color:#8aa69a;background:rgba(255,255,255,0.5);padding:4px 12px;border-radius:20px;">基于5道行为题</span>
+                </div>
+
+                <!-- 双栏布局 -->
+                <div class="grid-cols" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                    <!-- 左栏：App推荐 -->
+                    <div>
+                        <h3 style="font-weight:600;margin-bottom:12px;color:#0f2b22;font-size:1rem;">🥇 主推应用</h3>
+                        <div class="app-card primary">
+                            <span class="icon">📱</span>
+                            <div>
+                                <div class="name">${rec.primary}</div>
+                                <div class="reason">${rec.reason}</div>
+                            </div>
+                        </div>
+                        <h3 style="font-weight:600;margin:16px 0 10px;color:#0f2b22;font-size:0.95rem;">🔄 备选推荐</h3>
+                        ${altHtml}
+                    </div>
+
+                    <!-- 右栏：周计划 -->
+                    <div>
+                        <h3 style="font-weight:600;margin-bottom:12px;color:#0f2b22;font-size:1rem;">📅 个性化周计划</h3>
+                        <table class="plan-table">
+                            <tr><td style="font-weight:500;padding:6px 0;">📆 每周阅读</td><td style="padding:6px 0;">${plan.reading}</td></tr>
+                            <tr><td style="font-weight:500;padding:6px 0;">⏱️ 单次时长</td><td style="padding:6px 0;">${plan.duration}</td></tr>
+                            <tr><td style="font-weight:500;padding:6px 0;">🎯 每日参与度</td><td style="padding:6px 0;font-size:0.85rem;">${plan.engagement}</td></tr>
+                            <tr><td style="font-weight:500;padding:6px 0;">⚠️ 错题监控</td><td style="padding:6px 0;font-size:0.85rem;">${plan.error}</td></tr>
+                            <tr><td style="font-weight:500;padding:6px 0;">💡 专属贴士</td><td style="padding:6px 0;font-size:0.85rem;">${plan.tip}</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 底部 -->
+                <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(200,215,208,0.3);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                    <span style="font-size:0.75rem;color:#8aa69a;">📊 基于 500 名学习者数据 · 参与度 r=0.08</span>
+                    <button class="btn-outline" onclick="copyPlan()">📋 复制计划</button>
+                </div>
+            `;
+        }
+
+        function copyPlan() {
+            if (!data) return;
+            const { style, rec, plan } = data;
+            const text = `【VARK学习计划】\n风格: ${styleNames[style.primary]}\n主推应用: ${rec.primary}\n\n周计划:\n- 每周阅读 ${plan.reading}\n- 单次 ${plan.duration}\n- 每日 ${plan.engagement}\n- ${plan.tip}`;
+            navigator.clipboard.writeText(text).then(() => alert('✅ 计划已复制！')).catch(() => alert('请手动复制'));
+        }
+    </script>
+</body>
+</html>
